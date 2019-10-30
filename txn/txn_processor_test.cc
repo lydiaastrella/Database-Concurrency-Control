@@ -142,18 +142,18 @@ int main(int argc, char** argv) {
   cpu_set_t cs;
   CPU_ZERO(&cs);
   CPU_SET(7, &cs);
-  int ret = sched_setaffinity(0, sizeof(cs), &cs);
-  if (ret) {
-    perror("sched_setaffinity");
-    assert(false);
-  }
+  // int ret = sched_setaffinity(0, sizeof(cs), &cs);
+  // if (ret) {
+  //   perror("sched_setaffinity");
+  //   assert(false);
+  // }
 
   vector<LoadGen*> lg;
 
   cout << "'Low contention' Read only (5 records)" << endl;
-  lg.push_back(new RMWLoadGen(1000000, 5, 0, 0.0001));
-  lg.push_back(new RMWLoadGen(1000000, 5, 0, 0.001));
-  lg.push_back(new RMWLoadGen(1000000, 5, 0, 0.01));
+  lg.push_back(new RMWLoadGen(100000000, 5, 0, 0.0001));
+  lg.push_back(new RMWLoadGen(100000000, 5, 0, 0.001));
+  lg.push_back(new RMWLoadGen(100000000, 5, 0, 0.01));
 
   Benchmark(lg);
 
@@ -162,9 +162,9 @@ int main(int argc, char** argv) {
   lg.clear();
   
   cout << "'Low contention' Read only (20 records) " << endl;
-  lg.push_back(new RMWLoadGen(1000000, 20, 0, 0.0001));
-  lg.push_back(new RMWLoadGen(1000000, 20, 0, 0.001));
-  lg.push_back(new RMWLoadGen(1000000, 20, 0, 0.01));
+  lg.push_back(new RMWLoadGen(100000000, 20, 0, 0.0001));
+  lg.push_back(new RMWLoadGen(100000000, 20, 0, 0.001));
+  lg.push_back(new RMWLoadGen(100000000, 20, 0, 0.01));
 
   Benchmark(lg);
 
@@ -195,9 +195,9 @@ int main(int argc, char** argv) {
   lg.clear();
   
   cout << "Low contention read-write (5 records)" << endl;
-  lg.push_back(new RMWLoadGen(1000000, 0, 5, 0.0001));
-  lg.push_back(new RMWLoadGen(1000000, 0, 5, 0.001));
-  lg.push_back(new RMWLoadGen(1000000, 0, 5, 0.01));
+  lg.push_back(new RMWLoadGen(100000000, 0, 5, 0.0001));
+  lg.push_back(new RMWLoadGen(100000000, 0, 5, 0.001));
+  lg.push_back(new RMWLoadGen(100000000, 0, 5, 0.01));
 
   Benchmark(lg);
 
@@ -206,9 +206,9 @@ int main(int argc, char** argv) {
   lg.clear();
   
   cout << "Low contention read-write (10 records)" << endl;
-  lg.push_back(new RMWLoadGen(1000000, 0, 10, 0.0001));
-  lg.push_back(new RMWLoadGen(1000000, 0, 10, 0.001));
-  lg.push_back(new RMWLoadGen(1000000, 0, 10, 0.01));
+  lg.push_back(new RMWLoadGen(100000000, 0, 10, 0.0001));
+  lg.push_back(new RMWLoadGen(100000000, 0, 10, 0.001));
+  lg.push_back(new RMWLoadGen(100000000, 0, 10, 0.01));
 
   Benchmark(lg);
 

@@ -5,7 +5,7 @@
 
 // Init the storage
 void MVCCStorage::InitStorage() {
-  for (int i = 0; i < 1000000;i++) {
+  for (int i = 0; i < 100000000;i++) {
     Write(i, 0, 0);
     Mutex* key_mutex = new Mutex();
     mutexs_[i] = key_mutex;
@@ -44,10 +44,26 @@ bool MVCCStorage::Read(Key key, Value* result, int txn_unique_id) {
   // CPSC 438/538:
   //
   // Implement this method!
-  
   // Hint: Iterate the version_lists and return the verion whose write timestamp
   // (version_id) is the largest write timestamp less than or equal to txn_unique_id.
-  
+
+  // Check if key exists
+  if (mvcc_data_.find(key) == mvcc_data_.end()) {
+    return false;
+  }
+  // Iterate over deque:
+  int max_version_id_ = -99999;
+  for (deque<Version*>::iterator it = mvcc_data_[key]->begin(); it != mvcc_data_[key]->end(); ++it) {
+    if ((*it)->version_id_ <= txn_unique_id && (*it)->version_id_ > max_version_id_) {
+      max_version_id_ = (*it)->version_id_;
+    }
+  }
+  // If no write timestamp that is less than or equal to txn_unique_id
+  if (max_version_id_ == -99999) {
+    return false;
+  }
+
+  *result = max_version_id_;
   return true;
 }
 
@@ -64,9 +80,13 @@ bool MVCCStorage::CheckWrite(Key key, int txn_unique_id) {
   // write_set. Return true if this key passes the check, return false if not. 
   // Note that you don't have to call Lock(key) in this method, just
   // call Lock(key) before you call this method and call Unlock(key) afterward.
-  
-  
-  return true;
+  Value new_read = -99999;
+  if (Read(key, &(new_read), txn_unique_id) == true) {
+    return true;
+  } else {
+    // If txn_unique_id is less than largest read timestamp return false
+    return false;
+  }
 }
 
 // MVCC Write, call this method only if CheckWrite return true.
@@ -79,6 +99,30 @@ void MVCCStorage::Write(Key key, Value value, int txn_unique_id) {
   // into the version_lists. Note that InitStorage() also calls this method to init storage. 
   // Note that you don't have to call Lock(key) in this method, just
   // call Lock(key) before you call this method and call Unlock(key) afterward.
+  if (CheckWrite(key, txn_unique_id)) {
+    // Allocation of new version.
+    Version* new_version = new Version;
+    // If read success then
+    Value new_read = -99999;
+    if (Read(key, &(new_read), txn_unique_id) == true) {
+        new_version->max_read_id_ = static_cast<int>(new_read);
+      	new_version->value_ = value;
+      	new_version->version_id_ = txn_unique_id;
+        // Then insert to deque or overwrite existing value
+      	bool exist = false;
+        for (deque<Version*>::iterator it = mvcc_data_[key]->begin(); it != mvcc_data_[key]->end(); ++it) {
+          if ((*it)->version_id_ == txn_unique_id) {
+            // Overwrite
+            (*it)->value_ = value;
+            exist = true;
+            break;
+          }
+        }
+        if (!exist) {
+            mvcc_data_[key]->push_back(new_version);
+        }
+    }
+  }
 }
 
 
