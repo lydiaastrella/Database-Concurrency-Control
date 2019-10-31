@@ -15,6 +15,9 @@ struct Version {
 // MVCC storage
 class MVCCStorage : public Storage {
  public:
+
+ int FetchLargestVersionID(Key key, int txn_unique_id);
+
   // If there exists a record for the specified key, sets '*result' equal to
   // the value associated with the key and returns true, else returns false;
   // The third parameter is the txn_unique_id(txn timestamp), which is used for MVCC.
