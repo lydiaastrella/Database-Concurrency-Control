@@ -6,13 +6,16 @@
 // Fetch largest write timestamp (version_id_) and return it.
 // Precondition: Key already exists in a map.
 int MVCCStorage::FetchLargestVersionID(Key key, int txn_unique_id) {
-  int max_version_id_= -99999;
-  for (deque<Version*>::iterator it = mvcc_data_[key]->begin(); it != mvcc_data_[key]->end(); ++it) {
-    if ((*it)->version_id_ <= txn_unique_id && (*it)->version_id_ > max_version_id_) {
-      max_version_id_ = (*it)->version_id_;
+    int max_version_id_= -99999;
+    if (mvcc_data_.find(key) == mvcc_data_.end()) {
+        return -99999;
     }
-  }
-  return max_version_id_;
+    for (deque<Version*>::iterator it = mvcc_data_[key]->begin(); it != mvcc_data_[key]->end(); ++it) {
+        if ((*it)->version_id_ <= txn_unique_id && (*it)->version_id_ > max_version_id_) {
+            max_version_id_ = (*it)->version_id_;
+        }
+    }
+    return max_version_id_;
 }
 
 // Init the storage
@@ -77,9 +80,11 @@ bool MVCCStorage::Read(Key key, Value* result, int txn_unique_id) {
     if (max_version_id_ == (*it)->version_id_) {
         *result = (*it)->value_;
         // Overwrite  largest max_read_id_
-        (*it)->max_read_id_ = txn_unique_id;
-        break;
-    }
+        if (txn_unique_id > (*it)->max_read_id_) {
+        	(*it)->max_read_id_ = txn_unique_id;
+        }
+            break;
+        }
   }
   return true;
 }
@@ -97,15 +102,12 @@ bool MVCCStorage::CheckWrite(Key key, int txn_unique_id) {
   // write_set. Return true if this key passes the check, return false if not. 
   // Note that you don't have to call Lock(key) in this method, just
   // call Lock(key) before you call this method and call Unlock(key) afterward.
-  // If isEmpty
-  if (mvcc_data_[key]->empty()) {
-    return true;
-  }
+  
   // Fetch largest version id
   int max_version_id_ = FetchLargestVersionID(key, txn_unique_id);
   // If no write timestamp that is less than or equal to txn_unique_id
   if (max_version_id_ == -99999) {
-    return false;
+    return true;
   }
   for (deque<Version*>::iterator it = mvcc_data_[key]->begin(); it != mvcc_data_[key]->end(); ++it) {
     if (max_version_id_ == (*it)->version_id_) {
@@ -121,49 +123,46 @@ bool MVCCStorage::CheckWrite(Key key, int txn_unique_id) {
 
 // MVCC Write, call this method only if CheckWrite return true.
 void MVCCStorage::Write(Key key, Value value, int txn_unique_id) {
-  // CPSC 438/538:
-  //
-  // Implement this method!
-  
-  // Hint: Insert a new version (malloc a Version and specify its value/version_id/max_read_id)
-  // into the version_lists. Note that InitStorage() also calls this method to init storage. 
-  // Note that you don't have to call Lock(key) in this method, just
-  // call Lock(key) before you call this method and call Unlock(key) afterward.
-  if (CheckWrite(key, txn_unique_id)) {
-    if (mvcc_data_[key]->empty()) {
-      Version* new_version = new Version;
-      new_version->max_read_id_ = 0;
-      new_version->value_ = value;
-      new_version->version_id_ = txn_unique_id;
-      mvcc_data_[key]->push_back(new_version);
-      return;
-    }
+    // CPSC 438/538:
+    //
+    // Implement this method!
+    // Hint: Insert a new version (malloc a Version and specify its value/version_id/max_read_id)
+    // into the version_lists. Note that InitStorage() also calls this method to init storage. 
+    // Note that you don't have to call Lock(key) in this method, just
+    // call Lock(key) before you call this method and call Unlock(key) afterward.
+    
     // Fetch largest version id.
-    int max_version_id_ = FetchLargestVersionID(key, txn_unique_id);
     Version* new_version = new Version;
-    for (deque<Version*>::iterator it = mvcc_data_[key]->begin(); it != mvcc_data_[key]->end(); ++it) {
-        if (max_version_id_ == (*it)->version_id_) {
-            // Allocation of new version.
-            new_version->max_read_id_ = (*it)->max_read_id_;
-            new_version->value_ = value;
-            new_version->version_id_ = txn_unique_id;
-            break;
+    int max_version_id_ = FetchLargestVersionID(key, txn_unique_id);
+    // If is empty or not found, write
+    if (max_version_id_ == -99999) {
+        // If key does not exist then
+        if (mvcc_data_.find(key) == mvcc_data_.end()) {
+            // Allocate a new deque
+            deque<Version*>* deque = new std::deque<Version*>;
+            mvcc_data_[key] = deque;
         }
-    }
-    // Then insert to deque or overwrite existing value
-    bool exist = false;
-    for (deque<Version*>::iterator it = mvcc_data_[key]->begin(); it != mvcc_data_[key]->end(); ++it) {
-        if ((*it)->version_id_ == txn_unique_id) {
-            // Overwrite
-            (*it)->value_ = value;
-            exist = true;
-            break;
-        }
-    }
-    if (!exist) {
+        new_version->max_read_id_ = txn_unique_id;
+        new_version->value_ = value;
+        new_version->version_id_ = txn_unique_id;
         mvcc_data_[key]->push_back(new_version);
-    }
-  }
+        return;
+      }
+      for (deque<Version*>::iterator it = mvcc_data_[key]->begin(); it != mvcc_data_[key]->end(); ++it) {
+          if (max_version_id_ == (*it)->version_id_) {
+              if (max_version_id_ == txn_unique_id) {
+                  // Overwrite
+                  (*it)->value_ = value;
+              } else {
+                  // Allocation of new version.
+                  new_version->max_read_id_ = txn_unique_id;
+                  new_version->value_ = value;
+                  new_version->version_id_ = txn_unique_id;
+                  mvcc_data_[key]->push_back(new_version);
+              }
+            return;
+          }
+      }
 }
 
 
