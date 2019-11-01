@@ -39,6 +39,8 @@ class Txn {
   // Checks for overlap in read and write sets. If any key appears in both,
   // an error occurs.
   void CheckReadWriteSets();
+  
+  bool operator==(Txn *txn) { return unique_id_ == txn->unique_id_; }
 
  protected:
   // Copies the internals of this txn into a given transaction (i.e.

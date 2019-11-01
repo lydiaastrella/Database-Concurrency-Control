@@ -103,7 +103,7 @@ TEST(LockManagerA_LocksReleasedOutOfOrder) {
   END;
 }
 
-
+/*
 TEST(LockManagerB_SimpleLocking) {
   deque<Txn*> ready_txns;
   LockManagerB lm(&ready_txns);
@@ -186,11 +186,12 @@ TEST(LockManagerB_LocksReleasedOutOfOrder) {
 
   END;
 }
+*/
 
 int main(int argc, char** argv) {
   LockManagerA_SimpleLocking();
   LockManagerA_LocksReleasedOutOfOrder();
-  LockManagerB_SimpleLocking();
-  LockManagerB_LocksReleasedOutOfOrder();
+  //LockManagerB_SimpleLocking();
+  //LockManagerB_LocksReleasedOutOfOrder();
 }
 

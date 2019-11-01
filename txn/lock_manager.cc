@@ -4,11 +4,7 @@
 // Lock manager implementing deterministic two-phase locking as described in
 // 'The Case for Determinism in Database Systems'.
 
-#include <deque>
-
 #include "txn/lock_manager.h"
-
-using std::deque;
 
 LockManager::~LockManager() {
   // Cleanup lock_table_
@@ -17,75 +13,92 @@ LockManager::~LockManager() {
   }
 }
 
-deque<LockManager::LockRequest>* LockManager::_getLockQueue(const Key& key) {
-  deque<LockRequest> *dq = lock_table_[key];
-  if (!dq) {
-    dq = new deque<LockRequest>();
-    lock_table_[key] = dq;
-  }
-  return dq;
-}
-
 LockManagerA::LockManagerA(deque<Txn*>* ready_txns) {
   ready_txns_ = ready_txns;
 }
 
-bool LockManagerA::WriteLock(Txn* txn, const Key& key) {
-  bool empty = true;
-  LockRequest rq(EXCLUSIVE, txn);
-  deque<LockRequest> *dq = _getLockQueue(key);
-
-  empty = dq->empty();
-  dq->push_back(rq);
-
-  if (!empty) { // Add to wait list, doesn't own lock.
-    txn_waits_[txn]++;
+bool LockManagerA::WriteLock(Txn *txn, const Key &key)
+{
+  //
+  // Implement this method!
+  LockRequest lr(EXCLUSIVE, txn);
+  if (lock_table_.find(key) == lock_table_.end())
+  {
+    deque<LockRequest> *d = new deque<LockRequest>();
+    d->push_back(lr);
+    lock_table_[key] = d;
+    return true;
   }
-  return empty;
+  else
+  {
+    if(lock_table_[key]->empty())
+    {
+      lock_table_[key]->push_back(lr);
+      return true;
+    }else{
+      lock_table_[key]->push_back(lr);
+      txn_waits_[txn] += 1;
+      return false;
+    }
+  }
 }
 
-bool LockManagerA::ReadLock(Txn* txn, const Key& key) {
+bool LockManagerA::ReadLock(Txn *txn, const Key &key)
+{
   // Since Part 1A implements ONLY exclusive locks, calls to ReadLock can
   // simply use the same logic as 'WriteLock'.
   return WriteLock(txn, key);
 }
 
-void LockManagerA::Release(Txn* txn, const Key& key) {
-  deque<LockRequest> *queue = _getLockQueue(key);
-  bool removedOwner = true; // Is the lock removed the lock owner?
-
-  // Delete the txn's exclusive lock.
-  for (auto it = queue->begin(); it < queue->end(); it++) {
-    if (it->txn_ == txn) { // TODO is it ok to just compare by address?
-        queue->erase(it);
-        break;
+void LockManagerA::Release(Txn *txn, const Key &key)
+{
+  //
+  // Implement this method!
+  uint p = -1;
+  for (uint i = 0; i < lock_table_[key]->size(); i++)
+  {
+    if (lock_table_[key]->operator[](i).txn_ == txn)
+    {
+		  p = i;
+      break;
     }
-    removedOwner = false;
   }
+  if(p != lock_table_[key]->size()){
+    lock_table_[key]->erase(lock_table_[key]->begin()+p);
+  }
+  if(p == 0 && !lock_table_[key]->empty()){
+    //if (txn_waits_[lock_table_[key]->front().txn_] > 0){
+    txn_waits_[lock_table_[key]->front().txn_]--;
+    //}
 
-  if (!queue->empty() && removedOwner) {
-    // Give the next transaction the lock
-    LockRequest next = queue->front();
-
-    if (--txn_waits_[next.txn_] == 0) {
-        ready_txns_->push_back(next.txn_);
-        txn_waits_.erase(next.txn_);
+    if (txn_waits_[lock_table_[key]->front().txn_] == 0)
+    {
+      ready_txns_->push_back(lock_table_[key]->front().txn_);
+      txn_waits_.erase(lock_table_[key]->front().txn_);
     }
   }
 }
 
-LockMode LockManagerA::Status(const Key& key, vector<Txn*>* owners) {
-  deque<LockRequest> *dq = _getLockQueue(key);
-  if (dq->empty()) {
+LockMode LockManagerA::Status(const Key &key, vector<Txn *> *owners)
+{
+  //
+  // Implement this method!
+  owners->clear();
+  if (lock_table_.find(key) == lock_table_.end()){
+    vector<Txn *> *t = new vector<Txn *>();
+    owners = t;
     return UNLOCKED;
-  } else {
-    vector<Txn*> _owners;
-    _owners.push_back(dq->front().txn_);
-    *owners = _owners;
+  }else{
+    //for (uint i = 0; i < lock_table_[key]->size(); i++){
+	
+      owners->push_back(lock_table_[key]->operator[](0).txn_);
+    //}
     return EXCLUSIVE;
   }
+    return UNLOCKED;
 }
 
+/*
 LockManagerB::LockManagerB(deque<Txn*>* ready_txns) {
   ready_txns_ = ready_txns;
 }
@@ -176,3 +189,4 @@ LockMode LockManagerB::Status(const Key& key, vector<Txn*>* owners) {
 inline bool LockManagerB::_noExclusiveWaiting(const Key& key) {
   return _numExclusiveWaiting[key] == 0;
 }
+*/
