@@ -59,7 +59,7 @@ static inline double RandomDouble(double max) {
 
 // Sleep for 'duration' seconds.
 static inline void Sleep(double duration) {
-  usleep(1000000 * duration);
+  usleep(1000 * duration);
 }
 
 // Returns a human-readable string representation of an int.

@@ -137,7 +137,7 @@ class RMW : public Txn {
     // Run while loop to simulate the txn logic(duration is time_).
     double begin = GetTime();
     while (GetTime() - begin < time_) {
-      for (int i = 0;i < 1000; i++) {
+      for (int i = 0;i < 9; i++) {
         int x = 100;
         x = x + 2;
         x = x*x;

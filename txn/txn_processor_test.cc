@@ -79,9 +79,12 @@ void Benchmark(const vector<LoadGen*>& lg) {
   deque<Txn*> doneTxns;
 
   // For each MODE...
-  for (CCMode mode = SERIAL;
+  for (CCMode mode = LOCKING_EXCLUSIVE_ONLY;
       mode <= MVCC;
       mode = static_cast<CCMode>(mode+1)) {
+        if (mode == LOCKING_EXCLUSIVE_ONLY || mode == MVCC || mode == OCC) {
+
+        
     // Print out mode name.
     cout << ModeToString(mode) << flush;
 
@@ -132,6 +135,7 @@ void Benchmark(const vector<LoadGen*>& lg) {
 
     cout << endl;
   }
+  }
 }
 
 int main(int argc, char** argv) {
@@ -142,11 +146,11 @@ int main(int argc, char** argv) {
   cpu_set_t cs;
   CPU_ZERO(&cs);
   CPU_SET(7, &cs);
-  int ret = sched_setaffinity(0, sizeof(cs), &cs);
-  if (ret) {
-    perror("sched_setaffinity");
-    assert(false);
-  }
+  // int ret = sched_setaffinity(0, sizeof(cs), &cs);
+  // if (ret) {
+  //   perror("sched_setaffinity");
+  //   assert(false);
+  // }
 
   vector<LoadGen*> lg;
 

@@ -26,7 +26,7 @@ double Storage::Timestamp(Key key) {
 
 // Init the storage
 void Storage::InitStorage() {
-  for (int i = 0; i < 1000000;i++) {
+  for (int i = 0; i < 1000;i++) {
     Write(i, 0, 0);
   } 
 }

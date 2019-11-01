@@ -60,7 +60,7 @@ int main ()
 	// Version v4;
 	// v4.value_ = 4;
 	// v4.max_read_id_ = 8;
-	// v4.version_id_ = 9;
+	// v4.version_id_ = 1000000;
 
 	// mydeque.push_back(&v1);
 	// mydeque.push_back(&v2);

@@ -280,43 +280,44 @@ bool TxnProcessor::OCCValidateTransaction(const Txn &txn) const {
 
 void TxnProcessor::RunOCCScheduler() {
   // Fetch transaction requests, and immediately begin executing them.
+  Txn *txn;
   while (tp_.Active()) {
-    Txn *txn;
     if (txn_requests_.Pop(&txn)) {
-
       // Start txn running in its own thread.
       tp_.RunTask(new Method<TxnProcessor, void, Txn*>(
                   this,
                   &TxnProcessor::ExecuteTxn,
-                  txn));
+                  txn)); 
+      // ExecuteTxn(txn);
     }
 
     // Validate completed transactions, serially
-    Txn *finished;
-    while (completed_txns_.Pop(&finished)) {
-      if (finished->Status() == COMPLETED_A) {
-        finished->status_ = ABORTED;
-      } else {
-        bool valid = OCCValidateTransaction(*finished);
+    while (completed_txns_.Pop(&txn)) {
+      if (txn->Status() == COMPLETED_A) {
+        txn->status_ = ABORTED;
+        txn_results_.Push(txn);
+      } else if (txn->Status() == COMPLETED_C) {
+        bool valid = OCCValidateTransaction(*txn);
         if (!valid) {
           // Cleanup and restart
-          finished->reads_.empty();
-          finished->writes_.empty();
-          finished->status_ = INCOMPLETE;
+          txn->reads_.empty();
+          txn->writes_.empty();
+          txn->status_ = INCOMPLETE;
 
           mutex_.Lock();
           txn->unique_id_ = next_unique_id_;
           next_unique_id_++;
-          txn_requests_.Push(finished);
+          txn_requests_.Push(txn);
           mutex_.Unlock();
         } else {
           // Commit the transaction
-          ApplyWrites(finished);
+          ApplyWrites(txn);
           txn->status_ = COMMITTED;
+          txn_results_.Push(txn);
         }
+      } else {
+        DIE("Completed Txn has invalid TxnStatus: " << txn->Status());
       }
-
-      txn_results_.Push(finished);
     }
   }
 }
@@ -345,6 +346,98 @@ void TxnProcessor::RunMVCCScheduler() {
   //
   // [For now, run serial scheduler in order to make it through the test
   // suite]
-  RunSerialScheduler();
+  // RunSerialScheduler();
+  Txn *txn;
+  while (tp_.Active()) {
+	  // Transaction
+	  // While transactions exist
+	  if (txn_requests_.Pop(&txn)) {
+		  tp_.RunTask(new Method<TxnProcessor, void, Txn*>(
+                  this,
+                  &TxnProcessor::MVCCExecuteTxn,
+                  txn));
+      // MVCCExecuteTxn(txn);
+	  }
+	  while (completed_txns_.Pop(&txn)) {
+		  // ABORT all transactions which mean to be aborted.
+			if (txn->status_ == COMPLETED_A) {
+				txn->status_ = ABORTED;
+				txn_results_.Push(txn);
+			} else if (txn->status_ == COMPLETED_C) {
+        		txn->status_ = COMMITTED;
+				txn_results_.Push(txn);
+      		} else {
+        		DIE("Completed Txn has invalid TxnStatus: " << txn->Status());
+      		} 
+		}
+	}
 }
 
+void TxnProcessor::MVCCExecuteTxn(Txn *txn) {
+  	// Read everything in from readset.
+	for (set<Key>::iterator it = txn->readset_.begin(); it != txn->readset_.end(); ++it) {
+    	// Save each read result iff record exists in storage.
+		Value result;
+		// Lock and unlock
+		storage_->Lock(*it);
+		if (storage_->Read(*it, &result, txn->unique_id_)) {
+			txn->reads_[*it] = result;
+		}
+		storage_->Unlock(*it);
+  	}
+	// Also read everything in from writeset.
+ 	for (set<Key>::iterator it = txn->writeset_.begin(); it != txn->writeset_.end(); ++it) {
+    	// Save each read result iff record exists in storage.
+    	Value result;
+		// Lock and unlock
+		storage_->Lock(*it);
+    	if (storage_->Read(*it, &result, txn->unique_id_)) {
+			txn->reads_[*it] = result;
+		}
+		storage_->Unlock(*it);
+  	}
+  // Execute txn's program logic.
+  txn->Run();
+  MVCCLockWriteKeys(txn);
+	if (MVCCCheckWrites(txn)) {
+		// Apply the writes
+		ApplyWrites(txn);
+		MVCCUnlockWriteKeys(txn);
+    // Hand the txn back to the RunScheduler thread.
+    completed_txns_.Push(txn);
+	} else {
+		MVCCUnlockWriteKeys(txn);
+		txn->reads_.empty();
+		txn->writes_.empty();
+		txn->status_ = INCOMPLETE;
+		mutex_.Lock();
+		txn->unique_id_ = next_unique_id_;
+		next_unique_id_++;
+		txn_requests_.Push(txn);
+		mutex_.Unlock(); 
+	}
+}
+
+bool TxnProcessor::MVCCCheckWrites(Txn *txn) {
+	bool result = true;
+	for (set<Key>::iterator it = txn->writeset_.begin(); it != txn->writeset_.end(); ++it) {
+    	result = result && storage_->CheckWrite(*it, txn->unique_id_);
+  	}
+	return result;
+}
+
+void TxnProcessor::MVCCLockWriteKeys(Txn* txn) {
+	for (set<Key>::iterator it = txn->writeset_.begin(); it != txn->writeset_.end(); ++it) {
+    	storage_->Lock(*it);
+  	}
+}
+
+void TxnProcessor::MVCCUnlockWriteKeys(Txn* txn) {
+	for (set<Key>::iterator it = txn->writeset_.begin(); it != txn->writeset_.end(); ++it) {
+    	storage_->Unlock(*it);
+  	}
+}
+
+void TxnProcessor::GarbageCollection() {
+	// ??? 
+}

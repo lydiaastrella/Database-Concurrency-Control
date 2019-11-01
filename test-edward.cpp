@@ -143,6 +143,12 @@ void Write(Key key, Value value, int txn_unique_id) {
 	}
 }
 
+void Delete () {
+	for (std::unordered_map<Key, deque<Version*>*>::iterator it = mvcc_data_.begin(); it != mvcc_data_.end(); ++it) {
+    	std::cout << "Second: " <<  it->second << std::endl; 
+  	}
+}
+
 int main ()
 {
 	// deque<Version*> mydeque;
@@ -183,7 +189,7 @@ int main ()
 	// bool check = Read(2, &result, 4);
 	// std::cout << check << std::endl;
 	// std::cout << "testing " << result << std::endl;
-	for (int i = 1; i <= 10; i++) {
+	for (int i = 1; i <= 1000; i++) {
 		// Key a = 0;
 		// Value b = 0;
 		// int c = 0;
@@ -197,6 +203,7 @@ int main ()
 		// std::cout << "Read: " << b << std::endl;
 		print_deque(mvcc_data_[i]);
 		// Write(a, b, c);
+		// Delete();
 	}
 
 	for (int i = 0; i < 100000; i++) {
@@ -210,12 +217,13 @@ int main ()
 		std::cin >> c;
 		if (cupu == 'r') {
 			bool check = Read(a, &b, c);	
-			std::cout << "New read_id: " << b << std::endl;
+			std::cout << "Value fetched: " << b << std::endl;
 			if (check) {
 				print_deque(mvcc_data_[a]);
 			}
 		} else {
 			Write(a, b, c);
+			std::cout << "Value written: " << b << std::endl;
 			print_deque(mvcc_data_[a]);
 		}
 		// std::cout << "i : " << i << std::endl;
@@ -223,6 +231,7 @@ int main ()
 		// Write(a, b, c);
 		// print_deque(mvcc_data_[a]);
 	}
+
 	// for (deque<Version>::iterator it = mydeque.begin(); it != mydeque.end(); ++it)
  //    	std::cout << ' ' << *it;
  //  	std::cout << '\n';

@@ -21,7 +21,7 @@
 ///    AtomicMap<int, int> [1000 elements]:
 ///      Set/Erase: 290.8 ns
 ///      Lookup: 56.6 ns
-///    AtomicMap<int, int> [1000000 elements]:
+///    AtomicMap<int, int> [1000 elements]:
 ///      Set/Erase: 301.4 ns
 ///      Lookup: 61.5 ns
 ///

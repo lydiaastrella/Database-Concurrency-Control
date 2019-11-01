@@ -20,21 +20,25 @@ int MVCCStorage::FetchLargestVersionID(Key key, int txn_unique_id) {
 
 // Init the storage
 void MVCCStorage::InitStorage() {
-  for (int i = 0; i < 1000000;i++) {
-    Write(i, 0, 0);
-    Mutex* key_mutex = new Mutex();
-    mutexs_[i] = key_mutex;
-  }
+	for (int i = 0; i < 1000000;i++) {
+    	Write(i, 0, 0);
+    	Mutex* key_mutex = new Mutex();
+    	mutexs_[i] = key_mutex;
+  	}
 }
 
 // Free memory.
 MVCCStorage::~MVCCStorage() {
-  for (unordered_map<Key, deque<Version*>*>::iterator it = mvcc_data_.begin();
-       it != mvcc_data_.end(); ++it) {
-    delete it->second;          
+	for (unordered_map<Key, deque<Version*>*>::iterator it = mvcc_data_.begin(); it != mvcc_data_.end(); ++it) {
+    	// std::cout << "key: " << it->first << std::endl;
+		// for (deque<Version*>::iterator itr = mvcc_data_[it->first]->begin(); itr != mvcc_data_[it->first]->end(); ++it) {
+			// std::cout << "itr value: " << (*itr)->version_id_ << std::endl;
+			// delete (*itr);
+		// }
+		// std::cout << "attempt to delete: " << std::endl;
+		delete it->second;
   }
-  
-  mvcc_data_.clear();
+	mvcc_data_.clear();
   
   for (unordered_map<Key, Mutex*>::iterator it = mutexs_.begin();
        it != mutexs_.end(); ++it) {
@@ -134,6 +138,7 @@ void MVCCStorage::Write(Key key, Value value, int txn_unique_id) {
     // Fetch largest version id.
     Version* new_version = new Version;
     int max_version_id_ = FetchLargestVersionID(key, txn_unique_id);
+	// std::cout << "max_version_id: " << max_version_id_ << std::endl;
     // If is empty or not found, write
     if (max_version_id_ == -99999) {
         // If key does not exist then

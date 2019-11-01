@@ -53,7 +53,7 @@ TEST(PutMultipleTest) {
   Txn* t;
 
   map<Key, Value> m;
-  for (int i = 0; i < 1000; i++)
+  for (int i = 0; i < 1000000; i++)
     m[IntToString(i)] = IntToString(i*i);
 
   p.NewTxnRequest(new PutMultiple(m));

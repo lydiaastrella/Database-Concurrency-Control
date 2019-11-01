@@ -1,0 +1,46 @@
+			    Average Transaction Duration (MVCC)
+		0.1ms		1ms		10ms
+'Low contention' Read only (5 records)
+ MVCC     	8596.04		968.27		91.6495	
+'Low contention' Read only (20 records) 
+ MVCC     	3670.46		876.659		97.7509	
+'High contention' Read only (5 records)
+ MVCC     	6931.66		960.966		99.4376	
+'High contention' Read only (20 records)
+ MVCC     	3726.65		871.074		97.9149	
+Low contention read-write (5 records)
+ MVCC     	4886.73		889.235		98.6146	
+Low contention read-write (10 records)
+ MVCC     	3611.33		868.736		96.7249	
+High contention read-write (1 records)
+ MVCC     	2263.14		854.865		99.0635	
+High contention read-write (5 records)
+ MVCC     	1549.66		740.058		97.943	
+High contention read-write (10 records)
+ MVCC     	775.651		528.363		91.4291	
+High contention mixed read only/read-write 
+ MVCC     	1088.38		674.998		117.674	
+
+
+Average Transaction Duration (OCC)
+		0.1ms		1ms		10ms
+'Low contention' Read only (5 records)
+ OCC      	8964.26		987.105		99.8238	
+'Low contention' Read only (20 records) 
+ OCC      	6072.04		904.885		99.0395	
+'High contention' Read only (5 records)
+ OCC      	6352.53		845.087		97.9094	
+'High contention' Read only (20 records)
+ OCC      	4550		925.216		99.2377	
+Low contention read-write (5 records)
+ OCC      	7018.1		966.657		99.2811	
+Low contention read-write (10 records)
+ OCC      	5912.52		919.167		98.9705	
+High contention read-write (1 records)
+ OCC      	8655.73		986.835		99.684	
+High contention read-write (5 records)
+ OCC      	6912.71		953.559		99.1971	
+High contention read-write (10 records)
+ OCC      	4647.49		922		99.0191	
+High contention mixed read only/read-write 
+ OCC      	4575.13		1053.84		118.567	
